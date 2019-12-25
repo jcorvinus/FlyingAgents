@@ -51,7 +51,7 @@ public class FlyingAgent : MonoBehaviour
 			Debug.Log("angle: " + signedAngle);
 
 			Quaternion rotation = Quaternion.AngleAxis(signedAngle * turningSpeed * Time.deltaTime, transform.right);
-			transform.rotation *= rotation;
+			transform.rotation = rotation * transform.rotation;
 
 			//Debug.DrawLine(transform.position, planePoint);
 		}
@@ -65,7 +65,7 @@ public class FlyingAgent : MonoBehaviour
 			Debug.Log("angle: " + signedAngle);
 
 			Quaternion rotation = Quaternion.AngleAxis(signedAngle * turningSpeed * Time.deltaTime, transform.forward);
-			transform.rotation *= rotation;
+			transform.rotation = rotation * transform.rotation;
 
 			//Debug.DrawLine(transform.position, planePoint);
 		}
