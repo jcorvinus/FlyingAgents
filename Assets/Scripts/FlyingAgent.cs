@@ -39,22 +39,27 @@ public class FlyingAgent : MonoBehaviour
 			rigidBody.angularVelocity = Vector3.zero;
 		}
 
-		if(Input.GetKey(KeyCode.W))
+		Plane verticalPlane = new Plane(transform.up, transform.position);
+		Plane horizontalPlane = new Plane(transform.forward, transform.position);
+
+		if (Input.GetKey(KeyCode.W))
 		{
 			// rotate to match vertically
-			Vector3 planePoint = Vector3.ProjectOnPlane(target.position, transform.right);
+			Vector3 planePoint = verticalPlane.ClosestPointOnPlane(target.position);
 			Vector3 direction = (planePoint - transform.position).normalized;
 			float signedAngle = Vector3.Angle(transform.right, direction);
 			Debug.Log("angle: " + signedAngle);
 
 			Quaternion rotation = Quaternion.AngleAxis(signedAngle * turningSpeed * Time.deltaTime, transform.right);
 			transform.rotation *= rotation;
+
+			//Debug.DrawLine(transform.position, planePoint);
 		}
 
 		if(Input.GetKey(KeyCode.D))
 		{
 			// rotate to match horizontally
-			Vector3 planePoint = Vector3.ProjectOnPlane(target.position, transform.forward);
+			Vector3 planePoint = horizontalPlane.ClosestPointOnPlane(target.position);
 			Vector3 direction = (planePoint - transform.position).normalized;
 			float signedAngle = Vector3.Angle(direction, transform.forward);
 			Debug.Log("angle: " + signedAngle);
@@ -65,11 +70,11 @@ public class FlyingAgent : MonoBehaviour
 			//Debug.DrawLine(transform.position, planePoint);
 		}
 
-		Vector3 targetInVerticalPlane = Vector3.ProjectOnPlane(target.position, transform.right);
-		Debug.DrawLine(transform.position, targetInVerticalPlane);
+		Vector3 verticalPlanePoint = verticalPlane.ClosestPointOnPlane(target.position);
+		Debug.DrawLine(transform.position, verticalPlanePoint, Color.red);
 
-		Vector3 targetInHorizontalPlane = Vector3.ProjectOnPlane(target.position, transform.forward);
-		Debug.DrawLine(transform.position, targetInHorizontalPlane);
+		Vector3 horizontalPlanePoint = horizontalPlane.ClosestPointOnPlane(target.position);
+		Debug.DrawLine(transform.position, horizontalPlanePoint, Color.blue);
 	}
 
 	// tells us if we need to bank to reach our target
@@ -93,5 +98,38 @@ public class FlyingAgent : MonoBehaviour
 		Vector3 thrustVelocity = transform.forward * speed * Time.fixedDeltaTime;
 
 		if(thrustActive) rigidBody.AddForce(thrustVelocity);
+	}
+
+	private void DrawPlane(Vector3 position, Vector3 normal)
+	{
+		Vector3 v3;
+
+		if (normal.normalized != Vector3.forward)
+			v3 = Vector3.Cross(normal, Vector3.forward).normalized * normal.magnitude;
+		else
+			v3 = Vector3.Cross(normal, Vector3.up).normalized * normal.magnitude;
+
+		v3 *= 5f;
+
+		var corner0 = position + v3;
+		var corner2 = position - v3;
+		var q = Quaternion.AngleAxis(90.0f, normal);
+		v3 = q * v3;
+		var corner1 = position + v3;
+		var corner3 = position - v3;
+
+		Gizmos.DrawLine(corner0, corner2);
+		Gizmos.DrawLine(corner1, corner3);
+		Gizmos.DrawLine(corner0, corner1);
+		Gizmos.DrawLine(corner1, corner2);
+		Gizmos.DrawLine(corner2, corner3);
+		Gizmos.DrawLine(corner3, corner0);
+		//Gizmos.DrawRay(position, normal, Color.red);
+	}
+
+	private void OnDrawGizmos()
+	{
+		DrawPlane(transform.position, transform.up);
+		DrawPlane(transform.position, transform.right);
 	}
 }
