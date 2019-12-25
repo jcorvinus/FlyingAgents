@@ -945,8 +945,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 1940194745}
-  speed: 0
-  turningSpeed: 1.26
+  speed: 3.01
+  turningSpeed: 1
   thrustIndicator: {fileID: 1607070060}
 --- !u!4 &1360808821
 Transform:
