@@ -12,6 +12,10 @@ public class FlyingAgent : MonoBehaviour
 	Rigidbody rigidBody;
 
 	bool thrustActive = false;
+	bool autoTurn;
+
+	[SerializeField] bool drawVerticalPlane;
+	[SerializeField] bool drawHorizontalPlane;
 
 	[SerializeField] GameObject thrustIndicator;
 
@@ -31,21 +35,28 @@ public class FlyingAgent : MonoBehaviour
 		return transform.right;
 	}
 
+	Vector3 GetVerticalRotationAxis()
+	{
+		return transform.forward;
+	}
+
 	Vector3 GetHorizontalPlaneNormal()
 	{
 		return transform.up;
+	}
+
+	public Vector3 GetHorizontalRotationAxis()
+	{
+		return transform.forward;
 	}
 
 	void DoSeek(Plane plane, Vector3 rotateAxis)
 	{
 		Vector3 planePoint = plane.ClosestPointOnPlane(target.position);
 		Vector3 direction = (planePoint - transform.position).normalized;
-		float signedAngle = Vector3.Angle(direction, transform.forward);
-		Debug.Log("angle: " + signedAngle);
+		Vector3 rotationAmount = Vector3.Cross(transform.forward, direction);
 
-		Debug.DrawRay(transform.position, rotateAxis);
-		Quaternion rotation = Quaternion.AngleAxis(signedAngle * turningSpeed * Time.deltaTime, rotateAxis);
-		transform.rotation = rotation * transform.rotation;
+		rigidBody.angularVelocity = (rotationAmount * (turningSpeed /* Time.fixedDeltaTime*/));
 	}
 
     // Update is called once per frame
@@ -64,23 +75,33 @@ public class FlyingAgent : MonoBehaviour
 		Plane verticalPlane = new Plane(GetVerticalPlaneNormal(), transform.position);
 		Plane horizontalPlane = new Plane(GetHorizontalPlaneNormal(), transform.position);
 
-		if (Input.GetKey(KeyCode.W))
+		if (Input.GetKey(KeyCode.W) && !autoTurn)
 		{
 			// rotate to match vertically
-			DoSeek(verticalPlane, transform.right);
+			DoSeek(verticalPlane, GetVerticalRotationAxis());
 		}
 
-		if(Input.GetKey(KeyCode.D))
+		if(Input.GetKey(KeyCode.D) && !autoTurn)
 		{
 			// rotate to match horizontally
-			DoSeek(horizontalPlane, transform.forward);
+			DoSeek(horizontalPlane, GetHorizontalRotationAxis());
 		}
 
-		Vector3 verticalPlanePoint = verticalPlane.ClosestPointOnPlane(target.position);
-		Debug.DrawLine(transform.position, verticalPlanePoint, Color.red);
+		if(Input.GetKeyDown(KeyCode.T)) autoTurn = !autoTurn;
 
-		Vector3 horizontalPlanePoint = horizontalPlane.ClosestPointOnPlane(target.position);
-		Debug.DrawLine(transform.position, horizontalPlanePoint, Color.blue);
+		if (drawVerticalPlane)
+		{
+			Vector3 verticalPlanePoint = verticalPlane.ClosestPointOnPlane(target.position);
+			DebugDrawPoint(verticalPlanePoint, Color.red, 0.5f);
+			//Debug.DrawLine(transform.position, verticalPlanePoint, Color.red);
+		}
+
+		if (drawHorizontalPlane)
+		{
+			Vector3 horizontalPlanePoint = horizontalPlane.ClosestPointOnPlane(target.position);
+			DebugDrawPoint(horizontalPlanePoint, Color.blue, 0.5f);
+			//Debug.DrawLine(transform.position, horizontalPlanePoint, Color.blue);
+		}
 	}
 
 	// tells us if we need to bank to reach our target
@@ -101,6 +122,13 @@ public class FlyingAgent : MonoBehaviour
 	{
 		Vector3 thrustVelocity = transform.forward * speed * Time.fixedDeltaTime;
 
+		if(autoTurn)
+		{
+			Vector3 directionToTarget = target.position - rigidBody.position;
+			Vector3 rotationAmount = Vector3.Cross(transform.forward, directionToTarget);
+
+			rigidBody.angularVelocity = rotationAmount * (turningSpeed * Time.fixedDeltaTime);
+		}
 		if(thrustActive) rigidBody.AddForce(thrustVelocity);
 	}
 
@@ -131,9 +159,43 @@ public class FlyingAgent : MonoBehaviour
 		//Gizmos.DrawRay(position, normal, Color.red);
 	}
 
+	/// <summary>
+	/// As opposed to gizmo draw point
+	/// </summary>
+	/// <param name="point"></param>
+	void DebugDrawPoint(Vector3 point, Color color, float size=1)
+	{
+		Vector3 up = point + Vector3.up * (size * 0.5f);
+		Vector3 down = point + Vector3.down * (size * 0.5f);
+		Debug.DrawLine(up, down, color);
+
+		Vector3 right = point + Vector3.right * (size * 0.5f);
+		Vector3 left = point + Vector3.left *(size * 0.5f);
+		Debug.DrawLine(left, right, color);
+
+		Vector3 forward = point + Vector3.forward * (size * 0.5f);
+		Vector3 back = point + Vector3.back * (size * 0.5f);
+		Debug.DrawLine(forward, back, color);
+	}
+
 	private void OnDrawGizmos()
 	{
-		DrawPlane(transform.position, GetVerticalPlaneNormal());
-		DrawPlane(transform.position, GetHorizontalPlaneNormal());
+		if (drawVerticalPlane)
+		{
+			Gizmos.color = Color.red;
+			DrawPlane(transform.position, GetVerticalPlaneNormal());
+
+			Gizmos.color = Color.white;
+			Gizmos.DrawLine(transform.position, transform.position + (GetVerticalRotationAxis() * 3));
+		}
+
+		if (drawHorizontalPlane)
+		{
+			Gizmos.color = Color.blue;
+			DrawPlane(transform.position, GetHorizontalPlaneNormal());
+
+			Gizmos.color = Color.white;
+			Gizmos.DrawLine(transform.position, transform.position + (GetHorizontalRotationAxis() * 3));
+		}
 	}
 }
